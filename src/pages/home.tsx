@@ -3,6 +3,8 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Icons, Page, PageCont
 import { useState } from "react";
 import { HelpTooltip } from "../components/help-tooltip";
 import { AccountSelector } from "../components/account-selector";
+import { FileDropzone } from "../components/file-dropzone";
+import { useFileParser } from "../hooks/use-file-parser";
 
 interface HomePageProps {
   ctx: AddonContext;
@@ -35,11 +37,29 @@ const SUPPORTED_BROKERAGES: Brokerage[] = [
 
 export default function HomePage({ ctx }: HomePageProps) {
   const [selectedAccount, setSelectedAccount] = useState<Account | null | undefined>(null);
-  const [file, setFile] = useState<File | null>(null);
   const [outputCsv, setOutputCsv] = useState<string | null>(null);
 
-  const handleNavigateToConfigs = () => {
-    ctx.api.navigation.navigate('/addons/lynk/configs');
+  const {
+    tables,
+    isParsing,
+    errors: parsingErrors,
+    selectedFile,
+    parseFile,
+    resetFileParser
+  } = useFileParser();
+
+  const fileValidationStatus = parsingErrors
+      ? "invalid"
+      : isParsing
+        ? "loading"
+        : "valid";
+
+  const handleFileChange = (file: File | null) => {
+    if (file) {
+      parseFile(file);
+    } else {
+      resetFileParser();
+    }
   };
 
   const headerActions = (
@@ -47,7 +67,7 @@ export default function HomePage({ ctx }: HomePageProps) {
       <Button
         variant="outline"
         size="icon"
-        onClick={handleNavigateToConfigs}
+        onClick={() => ctx.api.navigation.navigate('/addons/lynk/configs')}
         className="rounded-full"
       >
         <Icons.Settings className="size-4" />
@@ -103,14 +123,14 @@ export default function HomePage({ ctx }: HomePageProps) {
               <HelpTooltip content="Upload a file containing your investment activities. The file should include headers in the first row. Supported file types: CSV, XLSX" />
             </div>
             <div className="h-[120px]">
-              {/* <FileDropzone
-                file={csvFile}
+              <FileDropzone
+                file={selectedFile}
                 onFileChange={handleFileChange}
                 isLoading={isParsing}
-                accept=".csv"
+                accept="*"
                 isValid={fileValidationStatus === "valid"}
-                error={hasErrors ? "File contains errors" : null}
-              /> */}
+                error={parsingErrors ? "File contains errors" : null}
+              />
             </div>
           </div>
         </div>
