@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.20",
+    "@tanstack/react-table": "^8.21.3",
     "@wealthfolio/addon-sdk": "^2.0.0",
     "@wealthfolio/ui": "^2.0.0",
     "motion": "^12.33.0",

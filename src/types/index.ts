@@ -8,7 +8,7 @@ export interface Configs {
 }
 
 export interface ParsedTable {
-  name: string;
+  name?: string;
   headers: string[];
   rows: Record<string, any>[];
   rawRows: string[][];
@@ -17,8 +17,8 @@ export interface ParsedTable {
 
 export interface ParsedFile {
   file: File;
+  fileType: string;
   tables: ParsedTable[];
-  isParsing: boolean;
   fatalError?: ParserError;
 }
 

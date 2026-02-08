@@ -19,15 +19,16 @@ function validateHeaders(headers: string[]): boolean {
   );
 }
 
-
 export function useFileParser() {
-  const [state, setState] = useState<ParsedFile | null>(null);
+  const [parsedFile, setParsedFile] = useState<ParsedFile | null>(null);
+  const [isParsing, setIsParsing] = useState<boolean>(false);
 
   const parseFile = async (file: File) => {
-    setState({
+    setIsParsing(true);
+    setParsedFile({
       file,
+      fileType: "",
       tables: [],
-      isParsing: true,
     });
 
     try {
@@ -45,28 +46,31 @@ export function useFileParser() {
         tables = await parseXlsx(file);
       }
 
-      setState({
+      setIsParsing(false);
+      setParsedFile({
         file,
+        fileType: type,
         tables,
-        isParsing: false,
       });
     } catch (err: any) {
-      setState({
+      setIsParsing(false);
+      setParsedFile({
         file,
+        fileType: "",
         tables: [],
-        isParsing: false,
         fatalError: err,
       });
     }
   };
 
   return {
-    tables: state?.tables,
-    isParsing: state?.isParsing,
-    errors: state?.fatalError,
-    selectedFile: state?.file || null,
+    fileType: parsedFile?.fileType,
+    tables: parsedFile?.tables,
+    isParsing: isParsing,
+    errors: parsedFile?.fatalError,
+    selectedFile: parsedFile?.file || null,
     parseFile,
-    resetFileParser: () => setState(null),
+    resetFileParser: () => setParsedFile(null),
   };
 }
 
@@ -105,7 +109,6 @@ function parseCsv(file: File): Promise<ParsedTable> {
         });
 
         resolve({
-          name: "Sheet1",
           headers,
           rows,
           rawRows,
