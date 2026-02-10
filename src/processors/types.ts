@@ -1,5 +1,5 @@
-import { ParsedData } from "../types"
+import { Configs, ParsedData } from "../types"
 
 export interface BrokerProcessor {
-  process(file: File): Promise<ParsedData>
+  process(configs: Configs, file: File): Promise<ParsedData>
 }

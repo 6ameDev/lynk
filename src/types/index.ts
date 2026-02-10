@@ -7,9 +7,6 @@ export interface Configs {
   kuveraFunds: KuveraFund[];
 }
 
-/////
-
-
 export interface Transaction {
   date: string;
   activityType: string;

@@ -7,9 +7,10 @@ import { Button, Card, CardContent, CardHeader, Icons, Page, PageContent, PageHe
 import { ParsedData } from "../types";
 import { findProcessor } from "../processors";
 import { ReviewStep } from "../steps/review-step";
-import { getFileMeta, toCsv } from "../lib/utils";
+import { getFileMeta, toCsv } from "../lib";
 import { Broker, BrokerSelector } from "../components";
 import { StepIndicator, FileDropzone, AccountSelector, HelpTooltip, ImportAlert } from "../components";
+import { useConfigs } from "../hooks/use-configs";
 
 interface HomePageProps {
   ctx: AddonContext;
@@ -37,6 +38,8 @@ export default function HomePage({ ctx }: HomePageProps) {
   const [parsingError, setParsingError] = useState<string>("");
   const [parsedFile, setParsedFile] = useState<ParsedData | null>(null);
   const [file, setFile] = useState<File | null>(null);
+
+  const { configs } = useConfigs(ctx);
 
   const { tables, format: fileType, error: parsingErrors } = parsedFile ? parsedFile : {};
   const canReview = selectedAccount && file && tables && tables?.length > 0;
@@ -66,7 +69,7 @@ export default function HomePage({ ctx }: HomePageProps) {
       if (processor) {
         setIsParsing(true);
         processor
-          .process(file)
+          .process(configs, file)
           .then((result) => {
             setParsedFile(result);
             ctx.api.logger.debug(`File has been processed: ${result}`);

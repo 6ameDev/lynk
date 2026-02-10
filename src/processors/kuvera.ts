@@ -1,9 +1,10 @@
-import type { BrokerProcessor } from "./types";
-import type { ParsedData, Row, Transaction } from "../types";
-
-import { normalizeColumns } from "./utils";
 import { Activity } from "@wealthfolio/addon-sdk";
-import { parseFile } from "../hooks/use-file-parser";
+
+import type { BrokerProcessor } from "./types";
+import type { Configs, ParsedData, Row, Transaction } from "../types";
+
+import { parseFile } from "../lib";
+import { normalizeColumns } from "./utils";
 
 const REQUIRED_COLUMNS = [
   "date",
@@ -14,36 +15,24 @@ const REQUIRED_COLUMNS = [
   "amount_inr",
 ];
 
-export const KUVERA_FUND_MAP: Record<string, string> = {
-  "HDFC Flexicap Growth Direct Plan": "0P0000XW77.BO",
-  "HDFC Liquid Growth Direct Plan": "0P0000XW89.BO",
-  "HDFC Money Market Growth Direct Plan": "0P0000XW6V.BO",
-  "HDFC Nifty 50 Index Growth Direct Plan": "0P0000XW7T.BO",
-  "ICICI Prudential Gilt Growth Direct Plan": "0P0000XUXV.BO",
-  "ICICI Prudential Liquid Growth Direct Plan": "0P0000XUYC.BO",
-  "ICICI Prudential Money Market Growth Direct Plan": "0P0000XUYQ.BO",
-  "Parag Parikh Dynamic Asset Allocation Growth Direct Plan": "0P0001SEJL.BO",
-  "Parag Parikh Flexi Cap Growth Direct Plan": "0P0000YWL1.BO",
-  "SBI Gilt Growth Direct Plan": "0P0000XVK2.BO",
-  "UTI Nifty 50 Index Growth Direct Plan": "0P0000XVU2.BO",
-  "UTI Nifty Next 50 Index Growth Direct Plan": "0P0001DI4I.BO",
-  "Kotak Arbitrage Growth Direct Plan": "0P0000XV5S.BO",
-  "Tata Arbitrage Growth Direct Plan": "0P0001F9YJ.BO",
-};
-
 export const ORDER_ACTIVITY_MAP: Record<string, Activity["type"]> = {
   buy: "ADD_HOLDING",
   sell: "REMOVE_HOLDING",
 };
 
 export const kuveraProcessor: BrokerProcessor = {
-  async process(file): Promise<ParsedData> {
+  async process(configs: Configs, file: File): Promise<ParsedData> {
+    const kuveraFunds = configs.kuveraFunds;
+    const kuveraFundsMap = Object.fromEntries(
+      kuveraFunds.map((fund) => [fund.name, fund.symbol]),
+    );
+
     const {table, rows} = await getValidatedData(file);
 
     // Check if Fund Name <> Symbol mapping exists
     const fundNames = new Set(rows.map(r => r.name_of_the_fund));
     const unmapped = [...fundNames].filter(
-      name => !(name in KUVERA_FUND_MAP)
+      name => !(name in kuveraFundsMap)
     );
 
     if (unmapped.length) {
@@ -66,7 +55,7 @@ export const kuveraProcessor: BrokerProcessor = {
       const txn: Transaction = {
         date: row.date,
         activityType: ORDER_ACTIVITY_MAP[order],
-        symbol: KUVERA_FUND_MAP[row.name_of_the_fund],
+        symbol: kuveraFundsMap[row.name_of_the_fund],
         quantity: Number(row.units),
         unitPrice: Number(row.nav),
         amount: Number(row.amount_inr),

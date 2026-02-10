@@ -2,7 +2,7 @@ import { Account, ActivityType } from "@wealthfolio/addon-sdk";
 import { Button, Icons, ProgressIndicator } from "@wealthfolio/ui";
 import { TableViewer } from "../components/table-viewer";
 import { Row } from "../types";
-import { toTableViewerRows } from "../lib/utils";
+import { toTableViewerRows } from "../lib";
 
 interface ReviewStepProps {
   fileType: string;
