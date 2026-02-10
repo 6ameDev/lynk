@@ -4,10 +4,14 @@ import { useEffect, useState } from "react";
 import { HelpTooltip } from "../components/help-tooltip";
 import { AccountSelector } from "../components/account-selector";
 import { FileDropzone } from "../components/file-dropzone";
-import { useFileParser } from "../hooks/use-file-parser";
 import { StepIndicator } from "../components/step-indicator";
 import { AnimatePresence, motion } from "motion/react";
 import { ReviewStep } from "../steps/review-step";
+import { ParsedData } from "../types";
+import { findProcessor } from "../processors";
+import { ImportAlert } from "../components/import-alert";
+import { toCsv } from "../lib";
+import { getFileMeta } from "../lib/utils";
 
 interface HomePageProps {
   ctx: AddonContext;
@@ -37,28 +41,14 @@ const SUPPORTED_BROKERAGES: Brokerage[] = [
   },
 ];
 
-// Define the steps in the wizard
-// const STEPS = [
-//   { id: 1, title: "Review" },
-//   { id: 2, title: "Confirm" },
-//   { id: 3, title: "Download" },
-// ];
-
-
 export default function HomePage({ ctx }: HomePageProps) {
   const [selectedAccount, setSelectedAccount] = useState<Account | null | undefined>(null);
-  const [outputCsv, setOutputCsv] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isParsing, setIsParsing] = useState<boolean>(false);
+  const [parsedFile, setParsedFile] = useState<ParsedData | null>(null);
+  const [file, setFile] = useState<File | null>(null);
 
-  const {
-    fileType,
-    tables,
-    isParsing,
-    errors: parsingErrors,
-    selectedFile,
-    parseFile,
-    resetFileParser
-  } = useFileParser();
+  const { tables, format: fileType, error: parsingErrors } = parsedFile ? parsedFile : {};
 
   const steps = tables?.map((table, index) => ({
     id: index + 1,
@@ -78,10 +68,28 @@ export default function HomePage({ ctx }: HomePageProps) {
         : "valid";
 
   const handleFileChange = (file: File | null) => {
-    if (file) {
-      parseFile(file);
+    if (selectedAccount && file) {
+      setFile(file);
+      const processor = findProcessor(selectedAccount, file);
+      
+      if (processor) {
+        setIsParsing(true);
+        processor
+          .process(file)
+          .then((result) => {
+            setParsedFile(result);
+            ctx.api.logger.debug(`File has been processed: ${result}`);
+          })
+          .catch((err) => {
+            ctx.api.logger.error(`Failed to parse file(${file.name}): ${err}`);
+          })
+          .finally(() => setIsParsing(false));
+      } else {
+        ctx.api.logger.error(`Failed to find a processor for file(${file.name})`);
+      }
     } else {
-      resetFileParser();
+      setFile(null);
+      setParsedFile(null);
     }
   };
 
@@ -114,13 +122,20 @@ export default function HomePage({ ctx }: HomePageProps) {
         activityTypes={["ADD_HOLDING", "REMOVE_HOLDING"]}
         fileType={fileType}
         tableName={table.name}
-        headers={table.headers}
         rows={table.rows}
-        onBack={goToPreviousStep}
-        onNext={goToNextStep}
+        onBack={currentStep > 1 ? goToPreviousStep : undefined}
+        onNext={currentStep < steps.length ? goToNextStep : undefined}
       />
     );
   };
+
+  const handleDownload = () => {
+    if (file && tables) {
+      const outputCsv = toCsv(tables[0].rows)
+      const { name, format } = getFileMeta(file);
+      ctx.api.files.openSaveDialog(outputCsv, `${name}_processed.${format}`);
+    }
+  }
 
   const headerActions = (
     <>
@@ -139,7 +154,7 @@ export default function HomePage({ ctx }: HomePageProps) {
     <Page>
       <PageHeader heading="Lynk" text="" actions={headerActions}/>
 
-      <PageContent className="space-y-6">
+      <PageContent className="">
         {/* SECTION A: Import / Brokerages */}
         <section className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Supported Brokers</h3>
@@ -164,7 +179,7 @@ export default function HomePage({ ctx }: HomePageProps) {
         </section>
 
         {/* SECTION B: Account + File */}
-        <div className="px-6 pt-2 pb-6 sm:px-4 sm:pt-4 md:px-6 md:pt-6">
+        <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <div className="mb-1 flex items-center">
@@ -187,10 +202,11 @@ export default function HomePage({ ctx }: HomePageProps) {
               </div>
               <div className="h-[120px]">
                 <FileDropzone
-                  file={selectedFile}
+                  file={file}
                   onFileChange={handleFileChange}
                   isLoading={isParsing}
                   accept="*"
+                  disabled={selectedAccount == null}
                   isValid={fileValidationStatus === "valid"}
                   error={parsingErrors ? "File contains errors" : null}
                 />
@@ -200,8 +216,8 @@ export default function HomePage({ ctx }: HomePageProps) {
         </div>
 
         {/* SECTION C: Steps for review */}
-        {selectedAccount && selectedFile && tables && tables?.length > 0 && (
-          <div className="px-6 pt-2 pb-6 sm:px-4 sm:pt-4 md:px-6 md:pt-6">
+        {selectedAccount && file && tables && tables?.length > 0 && (
+          <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
             <Card className="w-full">
               <CardHeader className="border-b px-3 py-3 sm:px-6 sm:py-4">
                 <StepIndicator steps={steps} currentStep={currentStep} />
@@ -224,34 +240,28 @@ export default function HomePage({ ctx }: HomePageProps) {
           </div>
         )}
 
-        {/* SECTION C: Output preview + download */}
-        {outputCsv && (
-          <section className="space-y-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Generated CSV</CardTitle>
+        {/* SECTION D: Actions: Download */}
+        {currentStep == steps.length && (
+          <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
+            <Card className="w-full">
+              <CardHeader className="border-b px-3 py-3 sm:px-6 sm:py-4">
+                <div>
+                  <ImportAlert
+                    variant="success"
+                    title="Completed processing all transactions"
+                    description="20/20 transactions have been processed & are ready to download"
+                    icon={Icons.FileX}
+                  />
+                </div>
+                <div className="hidden w-full items-center justify-center md:flex">
+                  <Button onClick={handleDownload}>
+                    <Icons.Download className="mr-2 h-4 w-4" />
+                    Download CSV
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent>
-                <pre className="max-h-[300px] overflow-auto rounded-md bg-muted p-3 text-xs">
-                  {outputCsv}
-                </pre>
-              </CardContent>
             </Card>
-
-            <div className="flex justify-end">
-              <Button
-                onClick={() =>
-                  ctx.api.files.openSaveDialog(
-                    outputCsv,
-                    "lynk_processed.csv",
-                  )
-                }
-              >
-                <Icons.Download className="mr-2 h-4 w-4" />
-                Download CSV
-              </Button>
-            </div>
-          </section>
+          </div>
         )}
       </PageContent>
     </Page>

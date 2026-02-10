@@ -7,33 +7,45 @@ export interface Configs {
   kuveraFunds: KuveraFund[];
 }
 
-export interface ParsedTable {
-  name?: string;
-  headers: string[];
-  rows: Record<string, any>[];
-  rawRows: string[][];
-  errors: ParserError[];
+/////
+
+
+export interface Transaction {
+  date: string;
+  activityType: string;
+  symbol: string;
+  quantity: number | null;
+  unitPrice: number;
+  amount: number;
+  currency: string;
+  fee: number;
 }
 
-export interface ParsedFile {
-  file: File;
-  fileType: string;
-  tables: ParsedTable[];
-  fatalError?: ParserError;
+export const TRANSACTION_HEADERS: (keyof Transaction)[] = [
+  "date",
+  "activityType",
+  "symbol",
+  "quantity",
+  "unitPrice",
+  "amount",
+  "currency",
+  "fee",
+];
+
+export interface Row {
+  transaction?: Transaction;
+  error: string;
 }
 
-export type ParserErrorType =
-  | "File"
-  | "Header"
-  | "Row"
-  | "Sheet";
-
-export interface ParserError {
-  type: ParserErrorType;
-  message: string;
-  row?: number;        // CSV row / XLSX row
-  column?: string;
-  sheetName?: string;  // XLSX only
-  code?: string;
+export interface Table {
+  name: string;
+  rows: Row[];
+  rawRows: Record<string, any>[];
+  error: string;
 }
 
+export interface ParsedData {
+  tables: Table[];
+  format: string;
+  error: string;
+}

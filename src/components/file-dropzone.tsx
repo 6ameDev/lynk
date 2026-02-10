@@ -7,6 +7,7 @@ interface FileDropzoneProps {
   onFileChange: (file: File | null) => void;
   isLoading?: boolean;
   accept?: string;
+  disabled?: boolean;
   isValid?: boolean;
   error?: string | null;
 }
@@ -16,6 +17,7 @@ export const FileDropzone = ({
   onFileChange,
   isLoading = false,
   accept = "*",
+  disabled = false,
   isValid = true,
   error = null,
 }: FileDropzoneProps) => {
@@ -80,7 +82,7 @@ export const FileDropzone = ({
       return "border-green-500 bg-green-50 dark:bg-green-900/10";
     }
 
-    return "border-border bg-background/50 hover:bg-background/80 hover:border-muted-foreground/50";
+    return `border-border bg-background/50 ${disabled ? '' : 'hover:bg-background/80 hover:border-muted-foreground/50'}`;
   };
 
   // Animation variants for icon containers
@@ -129,7 +131,7 @@ export const FileDropzone = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={handleClick}
+      onClick={disabled ? undefined : handleClick}
     >
       <input
         type="file"

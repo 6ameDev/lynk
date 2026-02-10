@@ -41,7 +41,7 @@ interface TableViewerProps {
 }
 
 export function TableViewer({ name, data, fileType, className, maxHeight = "400px" }: TableViewerProps) {
-  const headerBarTitle = `${fileType.toUpperCase()} File` + (name ? ` | ${name}` : "");
+  const headerBarTitle = `${fileType.toUpperCase()} File`;
 
   // Determine initial column filters based on whether lines have errors
   const initialColumnFilters = useMemo<ColumnFiltersState>(() => {
