@@ -5,6 +5,15 @@ import { normalizeColumns } from "./utils";
 import { Activity } from "@wealthfolio/addon-sdk";
 import { parseFile } from "../hooks/use-file-parser";
 
+const REQUIRED_COLUMNS = [
+  "date",
+  "order",
+  "name_of_the_fund",
+  "units",
+  "nav",
+  "amount_inr",
+];
+
 export const KUVERA_FUND_MAP: Record<string, string> = {
   "HDFC Flexicap Growth Direct Plan": "0P0000XW77.BO",
   "HDFC Liquid Growth Direct Plan": "0P0000XW89.BO",
@@ -28,35 +37,10 @@ export const ORDER_ACTIVITY_MAP: Record<string, Activity["type"]> = {
 };
 
 export const kuveraProcessor: BrokerProcessor = {
-  canHandle(file) {
-    return file.name.endsWith(".csv");
-  },
-
   async process(file): Promise<ParsedData> {
-    const tables = await parseFile(file);
-    if(tables.length < 1) {
-      throw new Error("Invalid CSV File");
-    }
+    const {table, rows} = await getValidatedData(file);
 
-    const table = tables[0];
-    const rows = normalizeColumns(table.rawRows);
-
-    const requiredCols = [
-      "date",
-      "order",
-      "name_of_the_fund",
-      "units",
-      "nav",
-      "amount_inr",
-    ];
-
-    for (const col of requiredCols) {
-      if (!(col in rows[0])) {
-        throw new Error(`Kuvera CSV missing required column: ${col}`);
-      }
-    }
-
-    // ---- Symbol mapping validation ----
+    // Check if Fund Name <> Symbol mapping exists
     const fundNames = new Set(rows.map(r => r.name_of_the_fund));
     const unmapped = [...fundNames].filter(
       name => !(name in KUVERA_FUND_MAP)
@@ -104,4 +88,26 @@ export const kuveraProcessor: BrokerProcessor = {
       error: ""
     }
   },
+}
+
+async function getValidatedData(file: File) {
+  if(!file.name.endsWith(".csv")) {
+    throw new Error("Invalid file format for Kuvera. Only CSV is supported");
+  }
+
+  const tables = await parseFile(file);
+  if(tables.length < 1) {
+    throw new Error("Invalid CSV File");
+  }
+
+  const table = tables[0];
+  const rows = normalizeColumns(table.rawRows);
+
+  for (const col of REQUIRED_COLUMNS) {
+    if (!(col in rows[0])) {
+      throw new Error(`Kuvera CSV missing required column: ${col}`);
+    }
+  }
+
+  return { table, rows };
 }

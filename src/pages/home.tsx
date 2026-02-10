@@ -1,24 +1,20 @@
-import { Account, ActivityType, AddonContext } from "@wealthfolio/addon-sdk";
-import { Button, Card, CardContent, CardHeader, CardTitle, Icons, Page, PageContent, PageHeader, ProgressIndicator } from "@wealthfolio/ui";
 import { useEffect, useState } from "react";
-import { HelpTooltip } from "../components/help-tooltip";
-import { AccountSelector } from "../components/account-selector";
-import { FileDropzone } from "../components/file-dropzone";
-import { StepIndicator } from "../components/step-indicator";
 import { AnimatePresence, motion } from "motion/react";
-import { ReviewStep } from "../steps/review-step";
+
+import { Account, AddonContext } from "@wealthfolio/addon-sdk";
+import { Button, Card, CardContent, CardHeader, Icons, Page, PageContent, PageHeader } from "@wealthfolio/ui";
+
 import { ParsedData } from "../types";
 import { findProcessor } from "../processors";
-import { ImportAlert } from "../components/import-alert";
-import { toCsv } from "../lib";
-import { getFileMeta } from "../lib/utils";
-import { Broker, BrokerSelector } from "../components/broker-selector";
+import { ReviewStep } from "../steps/review-step";
+import { getFileMeta, toCsv } from "../lib/utils";
+import { Broker, BrokerSelector } from "../components";
+import { StepIndicator, FileDropzone, AccountSelector, HelpTooltip, ImportAlert } from "../components";
 
 interface HomePageProps {
   ctx: AddonContext;
 }
 
-// --- Mock data (replace with real list later) ---
 const SUPPORTED_BROKERAGES: Broker[] = [
   {
     id: "kuvera",
@@ -30,7 +26,7 @@ const SUPPORTED_BROKERAGES: Broker[] = [
     id: "vested",
     name: "Vested",
     icon: "Briefcase",
-    url: "https://vestedfinance.com",
+    url: "https://app.vestedfinance.com/en/global/transaction-history",
   },
 ];
 
@@ -38,10 +34,12 @@ export default function HomePage({ ctx }: HomePageProps) {
   const [selectedAccount, setSelectedAccount] = useState<Account | null | undefined>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isParsing, setIsParsing] = useState<boolean>(false);
+  const [parsingError, setParsingError] = useState<string>("");
   const [parsedFile, setParsedFile] = useState<ParsedData | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
   const { tables, format: fileType, error: parsingErrors } = parsedFile ? parsedFile : {};
+  const canReview = selectedAccount && file && tables && tables?.length > 0;
 
   const steps = tables?.map((table, index) => ({
     id: index + 1,
@@ -74,14 +72,17 @@ export default function HomePage({ ctx }: HomePageProps) {
             ctx.api.logger.debug(`File has been processed: ${result}`);
           })
           .catch((err) => {
+            setParsingError(err.message);
             ctx.api.logger.error(`Failed to parse file(${file.name}): ${err}`);
           })
           .finally(() => setIsParsing(false));
       } else {
+        setParsingError(`Support for ${selectedAccount.name} broker hasn't been added yet.`);
         ctx.api.logger.error(`Failed to find a processor for file(${file.name})`);
       }
     } else {
       setFile(null);
+      setParsingError("");
       setParsedFile(null);
     }
   };
@@ -187,7 +188,17 @@ export default function HomePage({ ctx }: HomePageProps) {
         </div>
 
         {/* SECTION B: Steps for review */}
-        {selectedAccount && file && tables && tables?.length > 0 && (
+        {parsingError.length > 0 && (
+          <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
+            <ImportAlert
+              variant="destructive"
+              title="Failed Processing!"
+              description={(<div style={{ whiteSpace: "pre-line" }}>{parsingError}</div>)}
+              icon={Icons.XCircle}
+            />
+          </div>
+        )}
+        {canReview && (
           <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
             <Card className="w-full">
               <CardHeader className="border-b px-3 py-3 sm:px-6 sm:py-4">

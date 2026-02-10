@@ -10,11 +10,7 @@ const BROKER_PROCESSORS: Partial<Record<BrokerKey, BrokerProcessor>> = {
   kuvera: kuveraProcessor,
 };
 
-export function findProcessor(account: Account, file: File): BrokerProcessor | null {
+export function findProcessor(account: Account, file: File): BrokerProcessor | undefined {
   const key = account.name.toLowerCase() as BrokerKey;
-  const broker = BROKER_PROCESSORS[key];
-
-  if (!broker) return null;
-
-  return broker.canHandle(file) ? broker : null;
+  return BROKER_PROCESSORS[key];
 }
