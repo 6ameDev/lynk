@@ -12,32 +12,25 @@ import { findProcessor } from "../processors";
 import { ImportAlert } from "../components/import-alert";
 import { toCsv } from "../lib";
 import { getFileMeta } from "../lib/utils";
+import { Broker, BrokerSelector } from "../components/broker-selector";
 
 interface HomePageProps {
   ctx: AddonContext;
 }
 
-// --- Types ---
-type Brokerage = {
-  id: string;
-  name: string;
-  icon: keyof typeof Icons;
-  loginUrl: string;
-};
-
 // --- Mock data (replace with real list later) ---
-const SUPPORTED_BROKERAGES: Brokerage[] = [
+const SUPPORTED_BROKERAGES: Broker[] = [
   {
     id: "kuvera",
     name: "Kuvera",
     icon: "Briefcase",
-    loginUrl: "https://kuvera.in",
+    url: "https://kuvera.in/reports/transactions",
   },
   {
     id: "vested",
     name: "Vested",
     icon: "Briefcase",
-    loginUrl: "https://vestedfinance.com",
+    url: "https://vestedfinance.com",
   },
 ];
 
@@ -139,6 +132,7 @@ export default function HomePage({ ctx }: HomePageProps) {
 
   const headerActions = (
     <>
+      <BrokerSelector brokers={SUPPORTED_BROKERAGES} />
       <Button
         variant="outline"
         size="icon"
@@ -155,30 +149,7 @@ export default function HomePage({ ctx }: HomePageProps) {
       <PageHeader heading="Lynk" text="" actions={headerActions}/>
 
       <PageContent className="">
-        {/* SECTION A: Import / Brokerages */}
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Supported Brokers</h3>
-
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {SUPPORTED_BROKERAGES.map((b) => {
-              const Icon = Icons[b.icon];
-              return (
-                <a
-                  key={b.id}
-                  href={b.loginUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-w-[96px] flex-col items-center gap-2 rounded-lg border bg-background p-3 hover:bg-muted transition"
-                >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs">{b.name}</span>
-                </a>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* SECTION B: Account + File */}
+        {/* SECTION A: Account + File */}
         <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
@@ -215,7 +186,7 @@ export default function HomePage({ ctx }: HomePageProps) {
           </div>
         </div>
 
-        {/* SECTION C: Steps for review */}
+        {/* SECTION B: Steps for review */}
         {selectedAccount && file && tables && tables?.length > 0 && (
           <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
             <Card className="w-full">
@@ -240,7 +211,7 @@ export default function HomePage({ ctx }: HomePageProps) {
           </div>
         )}
 
-        {/* SECTION D: Actions: Download */}
+        {/* SECTION C: Actions: Download */}
         {currentStep == steps.length && (
           <div className="px-6 pt-2 pb-2 sm:px-4 md:px-6">
             <Card className="w-full">
@@ -248,8 +219,8 @@ export default function HomePage({ ctx }: HomePageProps) {
                 <div>
                   <ImportAlert
                     variant="success"
-                    title="Completed processing all transactions"
-                    description="20/20 transactions have been processed & are ready to download"
+                    title="Completed processing!"
+                    description="All transactions have been processed & are ready to download"
                     icon={Icons.FileX}
                   />
                 </div>
