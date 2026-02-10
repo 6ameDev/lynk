@@ -22,6 +22,14 @@ npm run bundle
 
 - Add your features here
 
+## Release instructions
+```
+- bump version in package.json, eg: 1.0.2
+- git commit -am "Release 1.0.2"
+- git tag v1.0.2
+- git push origin main --tags
+```
+
 ## License
 
 MIT
