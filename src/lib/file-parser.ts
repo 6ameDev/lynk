@@ -59,10 +59,7 @@ function parseXlsx(file: File): Promise<Table[]> {
     return workbook.SheetNames.map(sheetName => {
       const sheet = workbook.Sheets[sheetName];
 
-      const rawRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, {
-        header: 1,
-        blankrows: false,
-      });
+      const rawRows = XLSX.utils.sheet_to_json(sheet);
 
       return {
         name: sheetName,

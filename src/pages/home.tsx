@@ -61,6 +61,21 @@ export default function HomePage({ ctx }: HomePageProps) {
         ? "loading"
         : "valid";
 
+  function resetStates() {
+    setFile(null);
+    setParsingError("");
+    setParsedFile(null);
+    setIsParsing(false);
+    setCurrentStep(1);
+  }
+
+  const handleAccountChange = (account: Account) => {
+    if (account.id === selectedAccount?.id) return;
+
+    resetStates();
+    setSelectedAccount(account);
+  }
+
   const handleFileChange = (file: File | null) => {
     if (selectedAccount && file) {
       setFile(file);
@@ -84,9 +99,7 @@ export default function HomePage({ ctx }: HomePageProps) {
         ctx.api.logger.error(`Failed to find a processor for file(${file.name})`);
       }
     } else {
-      setFile(null);
-      setParsingError("");
-      setParsedFile(null);
+      resetStates();
     }
   };
 
@@ -127,12 +140,17 @@ export default function HomePage({ ctx }: HomePageProps) {
   };
 
   const handleDownload = () => {
-    if (file && tables) {
-      const outputCsv = toCsv(tables[0].rows)
-      const { name, format } = getFileMeta(file);
-      ctx.api.files.openSaveDialog(outputCsv, `${name}_processed.${format}`);
-    }
-  }
+    if (!file || !tables?.length) return;
+
+    const outputFormat = "csv";
+
+    // Combine rows from all tables
+    const allRows = tables.flatMap(table => table.rows);
+    const outputCsv = toCsv(allRows);
+    const { name } = getFileMeta(file);
+
+    ctx.api.files.openSaveDialog(outputCsv, `${name}_processed.${outputFormat}`);
+  };
 
   const headerActions = (
     <>
@@ -165,7 +183,7 @@ export default function HomePage({ ctx }: HomePageProps) {
                 <AccountSelector
                   ctx={ctx}
                   selectedAccount={selectedAccount}
-                  setSelectedAccount={setSelectedAccount}
+                  setSelectedAccount={handleAccountChange}
                 />
               </div>
             </div>
@@ -177,6 +195,7 @@ export default function HomePage({ ctx }: HomePageProps) {
               </div>
               <div className="h-[120px]">
                 <FileDropzone
+                  key={selectedAccount?.id ?? "no-account"}
                   file={file}
                   onFileChange={handleFileChange}
                   isLoading={isParsing}

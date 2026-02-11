@@ -4,6 +4,6 @@ export * from "./broker-selector";
 export * from "./file-dropzone";
 export * from "./help-tooltip";
 export * from "./import-alert";
-export * from "./LynkIcon";
+export * from "./lynk-icon";
 export * from "./step-indicator";
 export * from "./table-viewer";

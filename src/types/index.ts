@@ -37,7 +37,7 @@ export interface Row {
 export interface Table {
   name: string;
   rows: Row[];
-  rawRows: Record<string, any>[];
+  rawRows: any[];
   error: string;
 }
 

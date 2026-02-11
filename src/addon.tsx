@@ -6,7 +6,7 @@ import type { AddonContext } from '@wealthfolio/addon-sdk';
 import HomePage from './pages/home';
 import ConfigsPage from './pages/configs';
 
-import LynkIcon from './components/LynkIcon';
+import LynkIcon from './components/lynk-icon';
 
 function LynkAddon({ ctx }: { ctx: AddonContext }) {
   return (
