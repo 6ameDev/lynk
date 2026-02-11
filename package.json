@@ -1,6 +1,6 @@
 {
   "name": "wealthfolio-lynk-addon",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Import your brokerage accounts",
   "type": "module",
   "main": "dist/addon.js",
