@@ -47,7 +47,8 @@ const SHEET_SPECS = {
     ],
     activityMap: {
       "Tax": "Tax",
-      "Dividend": "Dividend"
+      "Dividend": "Dividend",
+      "Interest": "Interest"
     }
   }
 } as const;
