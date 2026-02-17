@@ -1,34 +1,72 @@
-import { Account, ActivityType } from "@wealthfolio/addon-sdk";
+import { Account, ActivityImport, ActivityType, Settings } from "@wealthfolio/addon-sdk";
 import { Button, Icons, ProgressIndicator } from "@wealthfolio/ui";
-import { TableViewer } from "../components/table-viewer";
 import { Row } from "../types";
-import { toTableViewerRows } from "../lib";
+import ActivitiesPreview from "../components/activities-preview";
+import { ImportAlert } from "../components";
 
 interface ReviewStepProps {
-  fileType: string;
-  tableName?: string;
-  rows: Row[];
+  settings: Settings;
   account: Account;
-  activityTypes: ActivityType[];
+  rows: Row[];
   onNext?: () => void;
   onBack?: () => void;
 }
 
+export function toActivityImports(rows: Row[], accountId: string): ActivityImport[] {
+  return rows
+    .map((row, index): ActivityImport | null => {
+      if (!row.transaction) return null;
+
+      const { transaction, error } = row;
+
+      return {
+        accountId,
+        activityType: transaction.activityType as ActivityType,
+        date: transaction.date,
+        symbol: transaction.symbol,
+        quantity: transaction.quantity ?? undefined,
+        unitPrice: transaction.unitPrice,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        fee: transaction.fee,
+        comment: transaction.comment ?? undefined,
+
+        // Metadata
+        isValid: error.length === 0,
+        errors: error.length
+          ? { general: [error] }
+          : undefined,
+        lineNumber: index,
+        isDraft: true,
+      };
+    })
+    .filter((v): v is ActivityImport => v !== null);
+}
+
 export const ReviewStep = ({
-  fileType,
-  tableName,
-  rows,
+  settings,
   account,
-  activityTypes,
+  rows,
   onBack,
   onNext,
 }: ReviewStepProps) => {
-  const tableData = toTableViewerRows(rows);
+  const accounts = [account];
+  const activities = toActivityImports(rows, account.id);
 
   return (
     <div>
+      {/* Row 1: Alert Notification */}
       <div className="mb-4">
-        <TableViewer name={tableName} data={tableData} fileType={fileType} className="w-full" maxHeight="30vh" />
+        <ImportAlert
+          variant="success"
+          title={`All ${activities.length} activities are valid`}
+          description="Your data is ready to be imported."
+        />
+      </div>
+
+      {/* Row 2: Activities Preview */}
+      <div className="mb-4">
+        <ActivitiesPreview settings={settings} activities={activities} accounts={accounts} />
       </div>
 
       {/* Row 3: Action buttons */}

@@ -3,8 +3,10 @@ import { Activity } from "@wealthfolio/addon-sdk";
 import type { BrokerProcessor } from "./types";
 import type { Configs, ParsedData, Row, Transaction } from "../types";
 
-import { parseFile } from "../lib";
-import { normalizeColumns } from "./utils";
+import { getFileMeta, parseFile } from "../lib";
+import { generateHash, normalizeColumns } from "./utils";
+
+const KUVERA_ACCOUNT_ID = "3c2bdc25-7a97-403b-8b75-6a45c7869538";
 
 const REQUIRED_COLUMNS = [
   "date",
@@ -63,17 +65,21 @@ export const kuveraProcessor: BrokerProcessor = {
         fee: 0,
       };
 
+      const hash = generateHash(txn, KUVERA_ACCOUNT_ID);
+
       return {
-        transaction: txn,
+        transaction: {...txn, comment: hash},
         error: ""
       }
     });
 
     table.rows = output;
+    const { name, format } = getFileMeta(file);
 
     return {
       tables: [table],
-      format: "csv",
+      name,
+      format,
       error: ""
     }
   },

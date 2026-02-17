@@ -1,7 +1,9 @@
-import { parseFile } from "../lib";
+import { getFileMeta, parseFile } from "../lib";
 import { Configs, ParsedData, Row, Transaction } from "../types";
 import { BrokerProcessor } from "./types";
-import { normalizeColumns } from "./utils";
+import { generateHash, normalizeColumns } from "./utils";
+
+const VESTED_ACCOUNT_ID = "3240643d-4c87-407d-98e2-8002153284d1";
 
 const SHEET_SPECS = {
   Trades: {
@@ -88,9 +90,12 @@ export const vestedProcessor: BrokerProcessor = {
     })
     .filter(table => table.rows.length > 0);
 
+    const { name, format } = getFileMeta(file);
+
     return {
       tables: processedTables,
-      format: "xlsx",
+      name,
+      format,
       error: ""
     };
   }
@@ -126,8 +131,8 @@ function processSheet(sheetName: string, rows: Record<string, any>[]): Result {
 
   if (invalid.size) return { errors: Array.from(invalid) };
 
-  const outputRows = rows.map(r => ({
-    transaction: {
+  const outputRows = rows.map(r => {
+    const txn = {
       date: new Date(r.date).toISOString().slice(0, 10),
       activityType: sheetSpec.activityMap[r.activity as keyof typeof sheetSpec.activityMap],
       symbol: r.ticker ?? "",
@@ -136,9 +141,15 @@ function processSheet(sheetName: string, rows: Record<string, any>[]): Result {
       amount: Number(r.cash_amount_in_usd ?? r.gross_cash_amount_in_usd),
       currency: "USD",
       fee: Number(r.commission_charges_in_usd ?? 0),
-    },
-    error: ""
-  }));
+    };
+
+    const hash = generateHash(txn, VESTED_ACCOUNT_ID);
+
+    return {
+      transaction: {...txn, comment: hash},
+      error: ""
+    }
+  });
 
   return { rows: outputRows };
 }

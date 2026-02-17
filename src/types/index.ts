@@ -16,6 +16,7 @@ export interface Transaction {
   amount: number;
   currency: string;
   fee: number;
+  comment?: string;
 }
 
 export const TRANSACTION_HEADERS: (keyof Transaction)[] = [
@@ -27,6 +28,7 @@ export const TRANSACTION_HEADERS: (keyof Transaction)[] = [
   "amount",
   "currency",
   "fee",
+  "comment",
 ];
 
 export interface Row {
@@ -43,6 +45,15 @@ export interface Table {
 
 export interface ParsedData {
   tables: Table[];
+  name: string;
   format: string;
   error: string;
+}
+
+type ImportStepType = "review" | "final";
+
+export interface ImportStep {
+  id: number;
+  type: ImportStepType;
+  title: string;
 }

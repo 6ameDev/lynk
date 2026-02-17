@@ -6,4 +6,3 @@ export * from "./help-tooltip";
 export * from "./import-alert";
 export * from "./lynk-icon";
 export * from "./step-indicator";
-export * from "./table-viewer";
