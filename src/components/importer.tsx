@@ -10,7 +10,7 @@ import { findProcessor } from "../processors";
 import { useActivityHashes } from "../hooks/use-activity-hashes";
 import { useConfigs } from "../hooks/use-configs";
 import { useSettings } from "../hooks/use-settings";
-import { FinalStep } from "./final-step";
+import { FinalStep } from "../steps/final-step";
 
 interface ImporterProps {
   ctx: AddonContext;
@@ -128,6 +128,7 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
       return (
         <FinalStep
           ctx={ctx}
+          settings={settings}
           account={account}
           tables={tables}
           fileName={name}

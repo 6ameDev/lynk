@@ -1,21 +1,24 @@
-import { Account, AddonContext } from "@wealthfolio/addon-sdk";
+import { Account, AddonContext, Settings } from "@wealthfolio/addon-sdk";
 import { Button, Icons } from "@wealthfolio/ui";
 import { Row } from "../types";
-import { toActivityImports } from "../steps/review-step";
+import { toActivityImports } from "./review-step";
 import { toCsv } from "../lib";
-import { ImportAlert } from "./import-alert";
+import { ImportAlert } from "../components/import-alert";
+import ActivitiesPreview from "../components/activities-preview";
 
 interface FinalStepProps {
   ctx: AddonContext;
+  settings: Settings;
   account: Account;
   tables: { rows: Row[] }[];
   fileName: string;
   onBack?: () => void;
 }
 
-export function FinalStep({ ctx, account, tables, fileName, onBack }: FinalStepProps) {
+export function FinalStep({ ctx, settings, account, tables, fileName, onBack }: FinalStepProps) {
   const allRows = tables.flatMap(table => table.rows);
   const activities = toActivityImports(allRows, account.id);
+  const accounts = [account];
 
   const handleDownload = () => {
     if (!tables.length) return;
@@ -27,6 +30,7 @@ export function FinalStep({ ctx, account, tables, fileName, onBack }: FinalStepP
 
   return (
     <div>
+      {/* Row 1: Alert Notification */}
       <div className="mb-4">
         <ImportAlert
           variant="success"
@@ -35,6 +39,12 @@ export function FinalStep({ ctx, account, tables, fileName, onBack }: FinalStepP
         />
       </div>
 
+      {/* Row 2: Activities Preview */}
+      <div className="mb-4">
+        <ActivitiesPreview settings={settings} activities={activities} accounts={accounts} />
+      </div>
+
+      {/* Row 3: Action buttons */}
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onBack}>
           Back
