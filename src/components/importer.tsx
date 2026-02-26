@@ -54,6 +54,7 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
     // Process file and set derived states
     const processor = findProcessor(account, file);
     if (processor) {
+      ctx.api.logger.debug(`Processing file...`);
       setIsParsing(true);
 
       processor.process(configs, file)

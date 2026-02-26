@@ -84,7 +84,7 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
     ref,
   ) => {
     const [open, setOpen] = useState(false);
-    const { accounts, isLoading: isLoadingAccounts } = useAccounts(ctx, filterActive);
+    const { accounts, isLoading: isLoadingAccounts } = useAccounts({ctx});
 
     const isLoading = isLoadingAccounts;
 

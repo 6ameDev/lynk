@@ -2,21 +2,33 @@ import { useQuery } from "@tanstack/react-query";
 import { Account, AddonContext } from "@wealthfolio/addon-sdk";
 import { QueryKeys } from "@wealthfolio/addon-sdk";
 
-export function useAccounts(ctx: AddonContext, filterActive = true) {
+interface UseAccountsOptions {
+  ctx: AddonContext;
+  enabled?: boolean;
+}
+
+export function useAccounts({ ctx, enabled = true }: UseAccountsOptions) {
   const {
-    data: fetchedAccounts = [],
+    data: accounts = [],
     isLoading,
     isError,
     error,
-  } = useQuery<Account[], Error>({
-    queryKey: [QueryKeys.ACCOUNTS, filterActive],
-    queryFn: ctx.api.accounts.getAll,
+  } = useQuery<Account[]>({
+    queryKey: [QueryKeys.ACCOUNTS],
+    queryFn: async () => {
+      if (!ctx.api) {
+        throw new Error("API context is required");
+      }
+
+      const data = await ctx.api.accounts.getAll();
+      return data || [];
+    },
+    enabled: enabled && !!ctx.api,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Apply active filter if requested
-  const filteredAccounts = filterActive
-    ? fetchedAccounts.filter((account) => account.isActive)
-    : fetchedAccounts;
-
-  return { accounts: filteredAccounts, isLoading, isError, error };
+  return { accounts, isLoading, isError, error };
 }

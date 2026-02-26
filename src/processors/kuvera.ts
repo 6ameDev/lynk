@@ -4,9 +4,9 @@ import type { BrokerProcessor } from "./types";
 import type { Configs, ParsedData, Row, Transaction } from "../types";
 
 import { getFileMeta, parseFile } from "../lib";
-import { generateHash, normalizeColumns } from "./utils";
+import { addHashes, normalizeColumns } from "./utils";
 
-const KUVERA_ACCOUNT_ID = "3c2bdc25-7a97-403b-8b75-6a45c7869538";
+const KUVERA_ACCOUNT = "kuvera";
 
 const REQUIRED_COLUMNS = [
   "date",
@@ -17,7 +17,7 @@ const REQUIRED_COLUMNS = [
   "amount_inr",
 ];
 
-export const ORDER_ACTIVITY_MAP: Record<string, Activity["type"]> = {
+export const ORDER_ACTIVITY_MAP: Record<string, Activity["activityType"]> = {
   buy: "ADD_HOLDING",
   sell: "REMOVE_HOLDING",
 };
@@ -45,7 +45,7 @@ export const kuveraProcessor: BrokerProcessor = {
       );
     }
 
-    const output: Row[] = rows.map(row => {
+    const outputRouws: Row[] = rows.map(row => {
       const order = String(row.order).trim().toLowerCase();
 
       if (!(order in ORDER_ACTIVITY_MAP)) {
@@ -65,15 +65,17 @@ export const kuveraProcessor: BrokerProcessor = {
         fee: 0,
       };
 
-      const hash = generateHash(txn, KUVERA_ACCOUNT_ID);
-
-      return {
-        transaction: {...txn, comment: hash},
-        error: ""
-      }
+      return { transaction: txn, error: "" };
     });
 
-    table.rows = output;
+    const sortedRows = [...outputRouws].sort(({transaction: txnA}, {transaction: txnB}) => {
+      if (!txnA || !txnB) return 0;
+      return txnB.date.localeCompare(txnA.date);
+    });
+
+    const outputRows = addHashes(sortedRows, KUVERA_ACCOUNT);
+
+    table.rows = outputRows;
     const { name, format } = getFileMeta(file);
 
     return {

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { type AddonContext, QueryKeys } from "@wealthfolio/addon-sdk";
-import { generateHashForActivity } from "../processors/utils";
 
 export function useActivityHashes(ctx: AddonContext, accountId: string|undefined, activityTypes?: string[]) {
   return useQuery({
@@ -20,11 +19,13 @@ export function useActivityHashes(ctx: AddonContext, accountId: string|undefined
             accountIds: accountId,
             activityTypes,
           },
-          "",
-          {}
+          ""
         );
 
-        data.forEach(activity => hashes.add(generateHashForActivity(activity)));
+        data.forEach(activity => {
+          const hash = activity.comment ?? "";
+          hashes.add(hash);
+        });
 
         if (!meta || data.length < pageSize) break;
 
@@ -34,7 +35,7 @@ export function useActivityHashes(ctx: AddonContext, accountId: string|undefined
       return hashes;
     },
     enabled: !!accountId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 1 * 10 * 1000, // 5 minutes
+    gcTime: 1 * 10 * 1000, // 10 minutes
   });
 }

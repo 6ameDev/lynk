@@ -1,6 +1,6 @@
 import { ActivityDetails } from "@wealthfolio/addon-sdk";
 import { fnv1a64 } from "../lib";
-import { Transaction } from "../types";
+import { Row, Transaction } from "../types";
 
 type AnyRow = Record<string, any>;
 
@@ -19,27 +19,7 @@ export function normalizeColumns<T extends AnyRow>(rows: T[]): Record<string, an
   });
 }
 
-export function generateHashForActivity(activity: ActivityDetails): string {
-  const amountActivityTypes = ["DIVIDEND", "WITHDRAWAL", "DEPOSIT"];
-  const unitPrice = amountActivityTypes.includes(activity.activityType)
-    ? activity.amount
-    : activity.unitPrice;
-
-  const raw = [
-    activity.accountId,
-    normalizeToISTDate(activity.date),
-    activity.activityType,
-    activity.assetSymbol,
-    activity.quantity || 0,
-    unitPrice || 0,
-    activity.currency,
-    activity.fee,
-  ].join("|");
-
-  return `${fnv1a64(raw)}#${0}`;
-}
-
-export function generateHash(item: Transaction, accountId: string): string {
+export function fingerprint(item: Transaction, accountName: string): string {
   const cashActivityTypes = ["TAX", "WITHDRAWAL", "DEPOSIT"];
   
   const unitPrice = item.activityType == "Tax" ? Math.abs(item.unitPrice) : item.unitPrice;
@@ -48,7 +28,7 @@ export function generateHash(item: Transaction, accountId: string): string {
     : item.symbol;
 
   const raw = [
-    accountId,
+    accountName,
     item.date.trim(),
     item.activityType.toUpperCase(),
     symbol,
@@ -58,7 +38,23 @@ export function generateHash(item: Transaction, accountId: string): string {
     item.fee,
   ].join("|");
 
-  return `${fnv1a64(raw)}#${0}`;
+  return fnv1a64(raw);
+}
+
+export function addHashes(rows: Row[], accountName: string): Row[] {
+  const counter = new Map<string, number>();
+
+  return rows.map(row => {
+    if (!row.transaction) return row;
+
+    const key = fingerprint(row.transaction, accountName);
+    const count = counter.get(key) ?? 0;
+    counter.set(key, count + 1);
+
+    const transaction = {...row.transaction, comment: `${key}#${count}`};
+
+    return {...row, transaction};
+  });
 }
 
 function normalizeToISTDate(dateInput: string | Date): string {

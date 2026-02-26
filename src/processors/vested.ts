@@ -1,9 +1,9 @@
 import { getFileMeta, parseFile } from "../lib";
-import { Configs, ParsedData, Row, Transaction } from "../types";
+import { Configs, ParsedData, Row } from "../types";
 import { BrokerProcessor } from "./types";
-import { generateHash, normalizeColumns } from "./utils";
+import { addHashes, normalizeColumns } from "./utils";
 
-const VESTED_ACCOUNT_ID = "3240643d-4c87-407d-98e2-8002153284d1";
+const VESTED_ACCOUNT = "vested";
 
 const SHEET_SPECS = {
   Trades: {
@@ -85,7 +85,16 @@ export const vestedProcessor: BrokerProcessor = {
         throw new Error(`Unsupported Vested ${table.name} activities: ${[...result.errors].join(", ")}`);
       }
 
-      table.rows = result.rows ?? [];
+      if (result.rows) {
+        const sortedRows = [...result.rows].sort(({transaction: txnA}, {transaction: txnB}) => {
+          if (!txnA || !txnB) return 0;
+          return txnB.date.localeCompare(txnA.date);
+        });
+
+        const outputRows = addHashes(sortedRows, VESTED_ACCOUNT);
+        table.rows = outputRows;
+      }
+
       return table;
     })
     .filter(table => table.rows.length > 0);
@@ -137,18 +146,13 @@ function processSheet(sheetName: string, rows: Record<string, any>[]): Result {
       activityType: sheetSpec.activityMap[r.activity as keyof typeof sheetSpec.activityMap],
       symbol: r.ticker ?? "",
       quantity: r.quantity ? Number(r.quantity) : null,
-      unitPrice: Number(r.price_per_share_in_usd ?? r.cash_amount_in_usd ?? r.gross_cash_amount_in_usd),
-      amount: Number(r.cash_amount_in_usd ?? r.gross_cash_amount_in_usd),
+      unitPrice: Math.abs(Number(r.price_per_share_in_usd ?? r.cash_amount_in_usd ?? r.gross_cash_amount_in_usd)),
+      amount: Math.abs(Number(r.cash_amount_in_usd ?? r.gross_cash_amount_in_usd)),
       currency: "USD",
       fee: Number(r.commission_charges_in_usd ?? 0),
     };
 
-    const hash = generateHash(txn, VESTED_ACCOUNT_ID);
-
-    return {
-      transaction: {...txn, comment: hash},
-      error: ""
-    }
+    return { transaction: txn, error: ""};
   });
 
   return { rows: outputRows };
