@@ -1,7 +1,6 @@
 import { Activity } from "@wealthfolio/addon-sdk";
 
-import type { BrokerProcessor } from "./types";
-import type { Configs, ParsedData, Row, Transaction } from "../types";
+import type { BrokerProcessor, Configs, ParsedData, Row, Transaction } from "../types";
 
 import { getFileMeta, parseFile } from "../lib";
 import { addHashes, normalizeColumns } from "./utils";
@@ -18,12 +17,12 @@ const REQUIRED_COLUMNS = [
 ];
 
 export const ORDER_ACTIVITY_MAP: Record<string, Activity["activityType"]> = {
-  buy: "ADD_HOLDING",
-  sell: "REMOVE_HOLDING",
+  buy: "BUY",
+  sell: "SELL",
 };
 
 export const kuveraProcessor: BrokerProcessor = {
-  async process(configs: Configs, file: File): Promise<ParsedData> {
+  async process({configs, file}): Promise<ParsedData> {
     const kuveraFunds = configs.kuveraFunds;
     const kuveraFundsMap = Object.fromEntries(
       kuveraFunds.map((fund) => [fund.name, fund.symbol]),

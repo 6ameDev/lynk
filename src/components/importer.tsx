@@ -57,7 +57,7 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
       ctx.api.logger.debug(`Processing file...`);
       setIsParsing(true);
 
-      processor.process(configs, file)
+      processor.process({configs, file})
       .then((result) => {
         const newActivities = filterNewActivities(result, fetchedHashes);
         setParsedFile(newActivities);

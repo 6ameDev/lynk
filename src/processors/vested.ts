@@ -1,6 +1,5 @@
 import { getFileMeta, parseFile } from "../lib";
-import { Configs, ParsedData, Row } from "../types";
-import { BrokerProcessor } from "./types";
+import { BrokerProcessor, Configs, ParsedData, Row } from "../types";
 import { addHashes, normalizeColumns } from "./utils";
 
 const VESTED_ACCOUNT = "vested";
@@ -61,7 +60,7 @@ type Result = {
 };
 
 export const vestedProcessor: BrokerProcessor = {
-  async process(configs: Configs, file: File): Promise<ParsedData> {
+  async process({file}): Promise<ParsedData> {
     if(!file.name.endsWith(".xlsx")) {
       throw new Error("Invalid file format for Vested. Only XLSX is supported");
     }

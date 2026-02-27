@@ -1,3 +1,11 @@
+export interface ProcessorParams {
+  configs: Configs;
+  file: File;
+}
+export interface BrokerProcessor {
+  process(params: ProcessorParams): Promise<ParsedData>
+}
+
 export interface KuveraFund {
   name: string;
   symbol: string;

@@ -1,7 +1,7 @@
 import { Account } from "@wealthfolio/addon-sdk";
 import { kuveraProcessor } from "./kuvera";
-import type { BrokerProcessor } from "./types";
 import { vestedProcessor } from "./vested";
+import { BrokerProcessor } from "../types";
 
 type BrokerKey = "kuvera" | "vested";
 

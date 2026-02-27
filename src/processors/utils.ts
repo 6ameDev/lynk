@@ -19,9 +19,37 @@ export function normalizeColumns<T extends AnyRow>(rows: T[]): Record<string, an
   });
 }
 
-export function fingerprint(item: Transaction, accountName: string): string {
+export function addHashes(rows: Row[], accountName: string): Row[] {
+  const counter = new Map<string, number>();
+
+  return rows.map(row => {
+    if (!row.transaction) return row;
+
+    const key = fingerprint(row.transaction, accountName);
+    const count = counter.get(key) ?? 0;
+    counter.set(key, count + 1);
+
+    const transaction = {...row.transaction, comment: `${key}#${count}`};
+
+    return {...row, transaction};
+  });
+}
+
+// Private functions
+
+function normalizeKey(key: string): string {
+  return key
+    .trim()
+    .toLowerCase()
+    // replace anything not alphanumeric with underscore
+    .replace(/[^a-z0-9]+/g, "_")
+    // remove leading/trailing underscores
+    .replace(/^_+|_+$/g, "");
+}
+
+function fingerprint(item: Transaction, accountName: string): string {
   const cashActivityTypes = ["TAX", "WITHDRAWAL", "DEPOSIT"];
-  
+
   const unitPrice = item.activityType == "Tax" ? Math.abs(item.unitPrice) : item.unitPrice;
   const symbol = cashActivityTypes.includes(item.activityType.toUpperCase())
     ? "$CASH-USD"
@@ -39,38 +67,4 @@ export function fingerprint(item: Transaction, accountName: string): string {
   ].join("|");
 
   return fnv1a64(raw);
-}
-
-export function addHashes(rows: Row[], accountName: string): Row[] {
-  const counter = new Map<string, number>();
-
-  return rows.map(row => {
-    if (!row.transaction) return row;
-
-    const key = fingerprint(row.transaction, accountName);
-    const count = counter.get(key) ?? 0;
-    counter.set(key, count + 1);
-
-    const transaction = {...row.transaction, comment: `${key}#${count}`};
-
-    return {...row, transaction};
-  });
-}
-
-function normalizeToISTDate(dateInput: string | Date): string {
-  const d = new Date(dateInput);
-
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-  }).format(d);
-}
-
-function normalizeKey(key: string): string {
-  return key
-    .trim()
-    .toLowerCase()
-    // replace anything not alphanumeric with underscore
-    .replace(/[^a-z0-9]+/g, "_")
-    // remove leading/trailing underscores
-    .replace(/^_+|_+$/g, "");
 }
