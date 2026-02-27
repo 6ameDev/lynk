@@ -1,9 +1,8 @@
 import { Activity } from "@wealthfolio/addon-sdk";
 
-import type { BrokerProcessor, Configs, ParsedData, Row, Transaction } from "../types";
-
 import { getFileMeta, parseFile } from "../lib";
 import { addHashes, normalizeColumns } from "./utils";
+import type { BrokerProcessor, ParsedData, Row, Transaction } from "../types";
 
 const KUVERA_ACCOUNT = "kuvera";
 
@@ -16,9 +15,16 @@ const REQUIRED_COLUMNS = [
   "amount_inr",
 ];
 
+type CashActivity = "DEPOSIT" | "WITHDRAWAL";
+
 export const ORDER_ACTIVITY_MAP: Record<string, Activity["activityType"]> = {
   buy: "BUY",
   sell: "SELL",
+};
+
+const CASH_ACTIVITY_MAP: Record<string, CashActivity> = {
+  buy: "DEPOSIT",
+  sell: "WITHDRAWAL",
 };
 
 export const kuveraProcessor: BrokerProcessor = {
@@ -44,37 +50,55 @@ export const kuveraProcessor: BrokerProcessor = {
       );
     }
 
-    const outputRouws: Row[] = rows.map(row => {
+    const outputRows: Row[] = rows.flatMap((row) => {
       const order = String(row.order).trim().toLowerCase();
 
       if (!(order in ORDER_ACTIVITY_MAP)) {
-        return {
-          error: `Unsupported Kuvera order type: ${order}`
-        }
+        return [{
+          error: `Unsupported Kuvera order type: ${order}`,
+        }];
       }
 
-      const txn: Transaction = {
+      const quantity = Number(row.units);
+      const unitPrice = Number(row.nav);
+      const amount = Number(quantity * unitPrice);
+
+      const cashTxn: Transaction = {
         date: row.date,
-        activityType: ORDER_ACTIVITY_MAP[order],
-        symbol: kuveraFundsMap[row.name_of_the_fund],
-        quantity: Number(row.units),
-        unitPrice: Number(row.nav),
-        amount: Number(row.amount_inr),
+        activityType: CASH_ACTIVITY_MAP[order],
+        symbol: "",
+        quantity: null,
+        unitPrice: amount,
+        amount,
         currency: "INR",
         fee: 0,
       };
 
-      return { transaction: txn, error: "" };
+      const tradeTxn: Transaction = {
+        date: row.date,
+        activityType: ORDER_ACTIVITY_MAP[order],
+        symbol: kuveraFundsMap[row.name_of_the_fund],
+        quantity,
+        unitPrice,
+        amount,
+        currency: "INR",
+        fee: 0,
+      };
+
+      return [
+        { transaction: tradeTxn, error: "" },
+        { transaction: cashTxn, error: "" },
+      ];
     });
 
-    const sortedRows = [...outputRouws].sort(({transaction: txnA}, {transaction: txnB}) => {
+    const sortedRows = [...outputRows].sort(({transaction: txnA}, {transaction: txnB}) => {
       if (!txnA || !txnB) return 0;
       return txnB.date.localeCompare(txnA.date);
     });
 
-    const outputRows = addHashes(sortedRows, KUVERA_ACCOUNT);
+    const outputWithHashes = addHashes(sortedRows, KUVERA_ACCOUNT);
 
-    table.rows = outputRows;
+    table.rows = outputWithHashes;
     const { name, format } = getFileMeta(file);
 
     return {

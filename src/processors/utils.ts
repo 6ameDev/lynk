@@ -1,4 +1,3 @@
-import { ActivityDetails } from "@wealthfolio/addon-sdk";
 import { fnv1a64 } from "../lib";
 import { Row, Transaction } from "../types";
 
