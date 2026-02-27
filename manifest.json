@@ -1,7 +1,7 @@
 {
   "id": "lynk",
   "name": "Lynk",
-  "version": "1.0.0",
+  "version": "0.0.4",
   "description": "Import your brokerage accounts",
   "author": "6ameDev",
   "main": "dist/addon.js",

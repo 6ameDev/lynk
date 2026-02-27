@@ -24,7 +24,7 @@ npm run bundle
 
 ## Release instructions
 ```
-- bump version in package.json, eg: 1.0.2
+- bump version in package.json & manifest.json, eg: 1.0.2
 - git commit -am "Release 1.0.2"
 - git tag v1.0.2
 - git push origin main --tags
