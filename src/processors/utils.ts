@@ -1,4 +1,4 @@
-import { fnv1a64 } from "../lib";
+import { fnv1a64 } from "../lib/utils";
 import { Row, Transaction } from "../types";
 
 type AnyRow = Record<string, any>;
@@ -28,9 +28,9 @@ export function addHashes(rows: Row[], accountName: string): Row[] {
     const count = counter.get(key) ?? 0;
     counter.set(key, count + 1);
 
-    const transaction = {...row.transaction, comment: `${key}#${count}`};
+    const transaction = { ...row.transaction, comment: `${key}#${count}` };
 
-    return {...row, transaction};
+    return { ...row, transaction };
   });
 }
 
