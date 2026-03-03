@@ -1,7 +1,7 @@
 import { Account, AddonContext, Settings } from "@wealthfolio/addon-sdk";
 import { Button, Icons } from "@wealthfolio/ui";
 import { Row } from "../types";
-import { toActivityImports } from "./review-step";
+import { rowsToActivityImports } from "../lib";
 import { toCsv } from "../lib";
 import { ImportAlert } from "../components/import-alert";
 import ActivitiesPreview from "../components/activities-preview";
@@ -17,7 +17,7 @@ interface FinalStepProps {
 
 export function FinalStep({ ctx, settings, account, tables, fileName, onBack }: FinalStepProps) {
   const allRows = tables.flatMap(table => table.rows);
-  const activities = toActivityImports(allRows, account.id);
+  const activities = rowsToActivityImports(allRows, account.id);
   const accounts = [account];
 
   const handleDownload = () => {

@@ -1,6 +1,7 @@
 import { Account, ActivityImport, ActivityType, Settings } from "@wealthfolio/addon-sdk";
 import { Button, Icons, ProgressIndicator } from "@wealthfolio/ui";
 import { Row } from "../types";
+import { rowsToActivityImports } from "../lib";
 import ActivitiesPreview from "../components/activities-preview";
 import { ImportAlert } from "../components";
 
@@ -12,37 +13,6 @@ interface ReviewStepProps {
   onBack?: () => void;
 }
 
-export function toActivityImports(rows: Row[], accountId: string): ActivityImport[] {
-  return rows
-    .map((row, index): ActivityImport | null => {
-      if (!row.transaction) return null;
-
-      const { transaction, error } = row;
-
-      return {
-        accountId,
-        activityType: transaction.activityType as ActivityType,
-        date: transaction.date,
-        symbol: transaction.symbol,
-        quantity: transaction.quantity ?? undefined,
-        unitPrice: transaction.unitPrice,
-        amount: transaction.amount,
-        currency: transaction.currency,
-        fee: transaction.fee,
-        comment: transaction.comment ?? undefined,
-
-        // Metadata
-        isValid: error.length === 0,
-        errors: error.length
-          ? { general: [error] }
-          : undefined,
-        lineNumber: index,
-        isDraft: true,
-      };
-    })
-    .filter((v): v is ActivityImport => v !== null);
-}
-
 export const ReviewStep = ({
   settings,
   account,
@@ -51,7 +21,7 @@ export const ReviewStep = ({
   onNext,
 }: ReviewStepProps) => {
   const accounts = [account];
-  const activities = toActivityImports(rows, account.id);
+  const activities = rowsToActivityImports(rows, account.id);
 
   return (
     <div>

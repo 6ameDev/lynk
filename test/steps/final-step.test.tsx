@@ -6,9 +6,13 @@ import { toCsv } from '../../src/lib';
 import { Row } from '../../src/types';
 
 // Mock dependencies
-vi.mock('../../src/lib', () => ({
-    toCsv: vi.fn(),
-}));
+vi.mock('../../src/lib', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../src/lib')>();
+    return {
+        ...actual,
+        toCsv: vi.fn(),
+    };
+});
 
 vi.mock('../../src/components/activities-preview', () => ({
     default: ({ activities }: any) => (
