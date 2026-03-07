@@ -14,6 +14,7 @@ describe('kuveraProcessor', () => {
         kuveraFunds: [
             { name: 'Nippon India Liquid Fund - Direct Plan - Growth', symbol: 'NIPPON_LIQUID' },
         ],
+        zerodhaSymbolMap: {},
     };
 
     beforeEach(() => {

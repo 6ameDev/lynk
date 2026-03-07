@@ -3,7 +3,8 @@ import type { AddonContext } from '@wealthfolio/addon-sdk';
 import type { Configs } from '../types';
 
 const DEFAULT_CONFIGS: Configs = {
-  kuveraFunds: []
+  kuveraFunds: [],
+  zerodhaSymbolMap: {}
 };
 
 const CONFIGS_KEY = 'lynk_configs';

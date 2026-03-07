@@ -13,6 +13,7 @@ export interface KuveraFund {
 
 export interface Configs {
   kuveraFunds: KuveraFund[];
+  zerodhaSymbolMap: Record<string, string>;
 }
 
 export interface Transaction {
@@ -56,6 +57,7 @@ export interface ParsedData {
   name: string;
   format: string;
   error: string;
+  updatedConfigs?: Partial<Configs>;
 }
 
 type ImportStepType = "review" | "final";

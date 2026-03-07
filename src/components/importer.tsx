@@ -24,7 +24,7 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
   const [parsingError, setParsingError] = useState<string>("");
   const [parsedFile, setParsedFile] = useState<ParsedData | null>(null);
 
-  const { configs } = useConfigs(ctx);
+  const { configs, updateConfigs } = useConfigs(ctx);
   const { data: settings } = useSettings(ctx);
   const { data: fetchedHashes, isFetching } = useActivityHashes(ctx, account?.id);
 
@@ -57,19 +57,22 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
       ctx.api.logger.debug(`Processing file...`);
       setIsParsing(true);
 
-      processor.process({configs, file})
-      .then((result) => {
-        const newActivities = filterNewActivities(result, fetchedHashes);
-        setParsedFile(newActivities);
-        ctx.api.logger.debug(`File has been processed`);
-      })
-      .catch((err) => {
-        setParsingError(err.message);
-        ctx.api.logger.error(`Failed to parse file(${file.name}): ${err}`);
-      })
-      .finally(() => {
-        setIsParsing(false);
-      });
+      processor.process({ configs, file })
+        .then((result) => {
+          if (result.updatedConfigs) {
+            updateConfigs(result.updatedConfigs);
+          }
+          const newActivities = filterNewActivities(result, fetchedHashes);
+          setParsedFile(newActivities);
+          ctx.api.logger.debug(`File has been processed`);
+        })
+        .catch((err) => {
+          setParsingError(err.message);
+          ctx.api.logger.error(`Failed to parse file(${file.name}): ${err}`);
+        })
+        .finally(() => {
+          setIsParsing(false);
+        });
     } else {
       setParsingError(`Support for ${account.name} broker hasn't been added yet.`);
       ctx.api.logger.error(`Failed to find a processor for file(${file.name})`);
