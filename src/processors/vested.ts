@@ -1,5 +1,5 @@
 import { getFileMeta, parseFile } from "../lib";
-import { BrokerProcessor, Configs, ParsedData, Row } from "../types";
+import { BrokerProcessor, BrokerSetting, ParsedData, Row } from "../types";
 import { addHashes, normalizeColumns } from "./utils";
 
 const VESTED_ACCOUNT = "vested";
@@ -22,7 +22,7 @@ const SHEET_SPECS = {
       "Buy": "BUY",
       "Sell": "SELL",
     }
-  }, 
+  },
 
   Transfers: {
     columns: [
@@ -59,44 +59,51 @@ type Result = {
   errors?: string[];
 };
 
-export const vestedProcessor: BrokerProcessor = {
-  async process({file}): Promise<ParsedData> {
-    if(!file.name.endsWith(".xlsx")) {
+export class VestedProcessor implements BrokerProcessor {
+  constructor(private setting: BrokerSetting) { }
+
+  async process(file: File): Promise<ParsedData> {
+    if (!file.name.endsWith(".xlsx")) {
       throw new Error("Invalid file format for Vested. Only XLSX is supported");
     }
 
     const tables = await parseFile(file);
-    if(tables.length < 1) {
+    if (tables.length < 1) {
       throw new Error("Invalid XLSX File");
     }
 
-    const processedTables = tables.map((table) => {
-      const rows = normalizeColumns(table.rawRows);
-      const missing = validateSheetColumns(table.name, rows[0]);
+    const processedTables = tables
+      .map((table) => {
+        const rows = normalizeColumns(table.rawRows);
+        const missing = validateSheetColumns(table.name, rows[0]);
 
-      if (missing) {
-        const missingColumns = missing.join(", ");
-        throw new Error(`${table.name} sheet in Vested XLSX file is missing columns: ${missingColumns}`);
-      }
+        if (missing) {
+          const missingColumns = missing.join(", ");
+          throw new Error(
+            `${table.name} sheet in Vested XLSX file is missing columns: ${missingColumns}`,
+          );
+        }
 
-      const result = processSheet(table.name, rows);
-      if (result.errors) {
-        throw new Error(`Unsupported Vested ${table.name} activities: ${[...result.errors].join(", ")}`);
-      }
+        const result = processSheet(table.name, rows);
+        if (result.errors) {
+          throw new Error(
+            `Unsupported Vested ${table.name} activities: ${[...result.errors].join(", ")}`,
+          );
+        }
 
-      if (result.rows) {
-        const sortedRows = [...result.rows].sort(({transaction: txnA}, {transaction: txnB}) => {
-          if (!txnA || !txnB) return 0;
-          return txnB.date.localeCompare(txnA.date);
-        });
+        if (result.rows) {
+          const sortedRows = [...result.rows].sort(({ transaction: txnA }, { transaction: txnB }) => {
+            if (!txnA || !txnB) return 0;
+            return txnB.date.localeCompare(txnA.date);
+          });
 
-        const outputRows = addHashes(sortedRows, VESTED_ACCOUNT);
-        table.rows = outputRows;
-      }
+          const outputRows = addHashes(sortedRows, VESTED_ACCOUNT);
+          table.rows = outputRows;
+        }
 
-      return table;
-    })
-    .filter(table => table.rows.length > 0);
+        return table;
+      })
+      .filter((table) => table.rows.length > 0);
 
     const { name, format } = getFileMeta(file);
 
@@ -104,7 +111,8 @@ export const vestedProcessor: BrokerProcessor = {
       tables: processedTables,
       name,
       format,
-      error: ""
+      error: "",
+      brokerId: this.setting.id,
     };
   }
 }
@@ -114,7 +122,7 @@ function validateSheetColumns(sheetName: string, actualColumns: Record<string, a
 
   // Sheet not in map → ignore
   if (!sheetSpec) return null;
-  
+
   // Verify columns exist
   const requiredColumns = sheetSpec.columns;
   const missing = requiredColumns.filter(
@@ -151,7 +159,7 @@ function processSheet(sheetName: string, rows: Record<string, any>[]): Result {
       fee: Number(r.commission_charges_in_usd ?? 0),
     };
 
-    return { transaction: txn, error: ""};
+    return { transaction: txn, error: "" };
   });
 
   return { rows: outputRows };

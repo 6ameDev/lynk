@@ -1,18 +1,28 @@
 import { Account } from "@wealthfolio/addon-sdk";
-import { kuveraProcessor } from "./kuvera";
-import { vestedProcessor } from "./vested";
-import { zerodhaProcessor } from "./zerodha";
-import { BrokerProcessor } from "../types";
+import { KuveraProcessor } from "./kuvera";
+import { VestedProcessor } from "./vested";
+import { ZerodhaProcessor } from "./zerodha";
+import { BrokerProcessor, BrokerSetting } from "../types";
 
 type BrokerKey = "kuvera" | "vested" | "zerodha";
 
-const BROKER_PROCESSORS: Partial<Record<BrokerKey, BrokerProcessor>> = {
-  kuvera: kuveraProcessor,
-  vested: vestedProcessor,
-  zerodha: zerodhaProcessor,
-};
-
-export function findProcessor(account: Account, file: File): BrokerProcessor | undefined {
+export function findProcessor(
+  account: Account,
+  brokerSettings: BrokerSetting[]
+): BrokerProcessor | undefined {
   const key = account.name.toLowerCase() as BrokerKey;
-  return BROKER_PROCESSORS[key];
+  const setting = brokerSettings.find((broker) => broker.id === key);
+
+  if (!setting || !setting.enabled) return undefined;
+
+  switch (key) {
+    case "kuvera":
+      return new KuveraProcessor(setting);
+    case "vested":
+      return new VestedProcessor(setting);
+    case "zerodha":
+      return new ZerodhaProcessor(setting);
+    default:
+      return undefined;
+  }
 }

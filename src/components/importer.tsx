@@ -8,9 +8,9 @@ import { ImportStep, ParsedData } from "../types";
 import { ReviewStep } from "../steps/review-step";
 import { findProcessor } from "../processors";
 import { useActivityHashes } from "../hooks/use-activity-hashes";
-import { useConfigs } from "../hooks/use-configs";
 import { useSettings } from "../hooks/use-settings";
 import { FinalStep } from "../steps/final-step";
+import { useBrokerSettings } from "../hooks/use-broker-settings";
 
 interface ImporterProps {
   ctx: AddonContext;
@@ -24,9 +24,9 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
   const [parsingError, setParsingError] = useState<string>("");
   const [parsedFile, setParsedFile] = useState<ParsedData | null>(null);
 
-  const { configs, updateConfigs } = useConfigs(ctx);
   const { data: settings } = useSettings(ctx);
   const { data: fetchedHashes, isFetching } = useActivityHashes(ctx, account?.id);
+  const { brokers: brokerSettings, isLoading: isLoadingBrokers, updateBroker } = useBrokerSettings();
 
   const { tables, name, error: parsingErrors } = parsedFile ? parsedFile : {};
   const canReview = account && file && tables && tables?.length > 0;
@@ -46,21 +46,25 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
   const steps = tables ? [...reviewSteps, finalStep] : [];
 
   useEffect(() => {
-    if (!file || !account || !fetchedHashes || isFetching) {
+    if (!file || !account || !fetchedHashes || isFetching || isLoadingBrokers) {
       resetStates();
       return;
     }
 
     // Process file and set derived states
-    const processor = findProcessor(account, file);
+    const processor = findProcessor(account, brokerSettings);
     if (processor) {
       ctx.api.logger.debug(`Processing file...`);
       setIsParsing(true);
 
-      processor.process({ configs, file })
+      processor.process(file)
         .then((result) => {
-          if (result.updatedConfigs) {
-            updateConfigs(result.updatedConfigs);
+          if (result.updatedBrokerSettings) {
+            updateBroker(result.brokerId, result.updatedBrokerSettings);
+          }
+          if (result.error) {
+            setParsingError(result.error);
+            return;
           }
           const newActivities = filterNewActivities(result, fetchedHashes);
           setParsedFile(newActivities);
@@ -77,7 +81,7 @@ export default function Importer({ ctx, account, file, setIsParsing }: ImporterP
       setParsingError(`Support for ${account.name} broker hasn't been added yet.`);
       ctx.api.logger.error(`Failed to find a processor for file(${file.name})`);
     }
-  }, [file, account, configs, fetchedHashes]);
+  }, [file, account, brokerSettings, fetchedHashes]);
 
   useEffect(() => {
     if (tables && tables.length > 0) {

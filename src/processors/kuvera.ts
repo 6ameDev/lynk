@@ -2,7 +2,7 @@ import { Activity } from "@wealthfolio/addon-sdk";
 
 import { getFileMeta, parseFile } from "../lib";
 import { addHashes, normalizeColumns } from "./utils";
-import type { BrokerProcessor, ParsedData, Row, Transaction } from "../types";
+import type { BrokerProcessor, BrokerSetting, ParsedData, Row, Transaction } from "../types";
 
 const KUVERA_ACCOUNT = "kuvera";
 
@@ -27,36 +27,48 @@ const CASH_ACTIVITY_MAP: Record<string, CashActivity> = {
   sell: "WITHDRAWAL",
 };
 
-export const kuveraProcessor: BrokerProcessor = {
-  async process({configs, file}): Promise<ParsedData> {
-    const kuveraFunds = configs.kuveraFunds;
-    const kuveraFundsMap = Object.fromEntries(
-      kuveraFunds.map((fund) => [fund.name, fund.symbol]),
-    );
+export class KuveraProcessor implements BrokerProcessor {
+  constructor(private setting: BrokerSetting) { }
 
-    const {table, rows} = await getValidatedData(file);
+  async process(file: File): Promise<ParsedData> {
+    const { name, format } = getFileMeta(file);
+    const kuveraFundsMap = this.setting.symbolMap || {};
+
+    const { table, rows } = await getValidatedData(file);
 
     // Check if Fund Name <> Symbol mapping exists
-    const fundNames = new Set(rows.map(r => r.name_of_the_fund));
-    const unmapped = [...fundNames].filter(
-      name => !(name in kuveraFundsMap)
-    );
+    const fundNames = new Set(rows.map((r) => r.name_of_the_fund));
+    const unmapped = [...fundNames].filter((name) => !kuveraFundsMap[name]);
 
     if (unmapped.length) {
-      throw new Error(
-        `Missing symbol mappings for Kuvera funds:\n${unmapped
-          .map(n => `- ${n}`)
-          .join("\n")}`
-      );
+      const updatedBrokerSettings = {
+        symbolMap: {
+          ...kuveraFundsMap,
+          ...Object.fromEntries(unmapped.map((name) => [name, ""])),
+        },
+      };
+
+      const errorMsg = `Missing ${unmapped.length} symbol mappings for Kuvera funds. Map the missing symbols in your broker settings and try again.`;
+
+      return {
+        tables: [table],
+        name,
+        format,
+        error: errorMsg,
+        brokerId: this.setting.id,
+        updatedBrokerSettings,
+      };
     }
 
     const outputRows: Row[] = rows.flatMap((row) => {
       const order = String(row.order).trim().toLowerCase();
 
       if (!(order in ORDER_ACTIVITY_MAP)) {
-        return [{
-          error: `Unsupported Kuvera order type: ${order}`,
-        }];
+        return [
+          {
+            error: `Unsupported Kuvera order type: ${order}`,
+          },
+        ];
       }
 
       const quantity = Number(row.units);
@@ -72,6 +84,7 @@ export const kuveraProcessor: BrokerProcessor = {
         amount,
         currency: "INR",
         fee: 0,
+        comment: "",
       };
 
       const tradeTxn: Transaction = {
@@ -83,6 +96,7 @@ export const kuveraProcessor: BrokerProcessor = {
         amount,
         currency: "INR",
         fee: 0,
+        comment: "",
       };
 
       return [
@@ -91,7 +105,7 @@ export const kuveraProcessor: BrokerProcessor = {
       ];
     });
 
-    const sortedRows = [...outputRows].sort(({transaction: txnA}, {transaction: txnB}) => {
+    const sortedRows = [...outputRows].sort(({ transaction: txnA }, { transaction: txnB }) => {
       if (!txnA || !txnB) return 0;
       return txnB.date.localeCompare(txnA.date);
     });
@@ -99,24 +113,24 @@ export const kuveraProcessor: BrokerProcessor = {
     const outputWithHashes = addHashes(sortedRows, KUVERA_ACCOUNT);
 
     table.rows = outputWithHashes;
-    const { name, format } = getFileMeta(file);
 
     return {
       tables: [table],
       name,
       format,
-      error: ""
-    }
-  },
+      error: "",
+      brokerId: this.setting.id,
+    };
+  }
 }
 
 async function getValidatedData(file: File) {
-  if(!file.name.endsWith(".csv")) {
+  if (!file.name.endsWith(".csv")) {
     throw new Error("Invalid file format for Kuvera. Only CSV is supported");
   }
 
   const tables = await parseFile(file);
-  if(tables.length < 1) {
+  if (tables.length < 1) {
     throw new Error("Invalid CSV File");
   }
 

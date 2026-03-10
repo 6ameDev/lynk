@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AddonContext } from '@wealthfolio/addon-sdk';
 
 import HomePage from './pages/home';
-import ConfigsPage from './pages/configs';
+import SettingsPage from './pages/settings';
 
 import LynkIcon from './components/lynk-icon';
 
@@ -56,16 +56,16 @@ export default function enable(ctx: AddonContext) {
     ),
   });
 
-  // Register configs route
+  // Register settings route
   ctx.router.add({
-    path: '/addons/lynk/configs',
+    path: '/addons/lynk/settings',
     component: React.lazy(() =>
       Promise.resolve({
         default: () => {
           const sharedQueryClient = ctx.api.query.getClient() as QueryClient;
           return (
             <QueryClientProvider client={sharedQueryClient}>
-              <ConfigsPage ctx={ctx} />
+              <SettingsPage ctx={ctx} />
             </QueryClientProvider>
           );
         },

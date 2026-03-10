@@ -1,9 +1,5 @@
-export interface ProcessorParams {
-  configs: Configs;
-  file: File;
-}
 export interface BrokerProcessor {
-  process(params: ProcessorParams): Promise<ParsedData>
+  process(file: File): Promise<ParsedData>
 }
 
 export interface KuveraFund {
@@ -11,9 +7,29 @@ export interface KuveraFund {
   symbol: string;
 }
 
+export interface BrokerSetting {
+  id: string;
+  name: string;
+  description: string | null;
+  url: string | null;
+  logoFilename: string | null;
+  enabled: boolean;
+  mappingSupported: boolean;
+  symbolMap: Record<string, string>;
+  placeholderMap: Record<string, string>;
+  capabilities: {
+    instruments: string | null;
+    coverage: string | null;
+  };
+  assetCount: number;
+  errorCount: number;
+  lastSyncedAt: string | null;
+  lastSyncError: string | null;
+  uniqueErrors: string[];
+}
+
 export interface Configs {
-  kuveraFunds: KuveraFund[];
-  zerodhaSymbolMap: Record<string, string>;
+  // Global configs here
 }
 
 export interface Transaction {
@@ -57,7 +73,8 @@ export interface ParsedData {
   name: string;
   format: string;
   error: string;
-  updatedConfigs?: Partial<Configs>;
+  brokerId: string;
+  updatedBrokerSettings?: Partial<BrokerSetting>;
 }
 
 type ImportStepType = "review" | "final";

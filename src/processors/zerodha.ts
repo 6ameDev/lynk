@@ -1,5 +1,5 @@
 import { getFileMeta, parseFile } from "../lib";
-import { BrokerProcessor, ParsedData, Row, Transaction } from "../types";
+import { BrokerProcessor, BrokerSetting, ParsedData, Row, Transaction } from "../types";
 import { addHashes, normalizeColumns } from "./utils";
 
 const ZERODHA_ACCOUNT = "zerodha";
@@ -23,8 +23,10 @@ const REQUIRED_COLUMNS = [
   "price",
 ];
 
-export const zerodhaProcessor: BrokerProcessor = {
-  async process({ file, configs }): Promise<ParsedData> {
+export class ZerodhaProcessor implements BrokerProcessor {
+  constructor(private setting: BrokerSetting) { }
+
+  async process(file: File): Promise<ParsedData> {
     if (!file.name.endsWith(".csv")) {
       throw new Error("Invalid file format for Zerodha. Only CSV is supported");
     }
@@ -48,7 +50,7 @@ export const zerodhaProcessor: BrokerProcessor = {
     }
 
     const sessionSymbolMap: Record<string, string> = {};
-    const existingMap = configs.zerodhaSymbolMap || {};
+    const existingMap = this.setting.symbolMap || {};
 
     const outputRows: Row[] = rows.flatMap((row) => {
       const tradeTypeRaw = String(row.trade_type || "").trim().toLowerCase();
@@ -86,13 +88,14 @@ export const zerodhaProcessor: BrokerProcessor = {
       }
 
       // 5. Persistent Symbol Mapping
-      let suffix = existingMap[symbolRaw] || sessionSymbolMap[symbolRaw];
-      if (!suffix) {
-        suffix = EXCHANGE_MAP[exchangeRaw];
-        sessionSymbolMap[symbolRaw] = suffix;
+      let symbol = existingMap[symbolRaw] || sessionSymbolMap[symbolRaw];
+
+      if (!symbol) {
+        // New mapping: store full symbol (symbolRaw + suffix)
+        symbol = symbolRaw + EXCHANGE_MAP[exchangeRaw];
+        sessionSymbolMap[symbolRaw] = symbol;
       }
 
-      const symbol = symbolRaw + suffix;
       const amount = quantity * unitPrice;
       const isoDate = date.toISOString().slice(0, 10);
 
@@ -105,6 +108,7 @@ export const zerodhaProcessor: BrokerProcessor = {
         amount,
         currency: "INR",
         fee: 0,
+        comment: "",
       };
 
       const cashTxn: Transaction = {
@@ -116,6 +120,7 @@ export const zerodhaProcessor: BrokerProcessor = {
         amount,
         currency: "INR",
         fee: 0,
+        comment: "",
       };
 
       return [
@@ -134,8 +139,8 @@ export const zerodhaProcessor: BrokerProcessor = {
     table.rows = outputWithHashes;
     const { name, format } = getFileMeta(file);
 
-    const updatedConfigs = Object.keys(sessionSymbolMap).length > 0
-      ? { zerodhaSymbolMap: { ...configs.zerodhaSymbolMap, ...sessionSymbolMap } }
+    const updatedBrokerSettings = Object.keys(sessionSymbolMap).length > 0
+      ? { symbolMap: { ...this.setting.symbolMap, ...sessionSymbolMap } }
       : undefined;
 
     return {
@@ -143,7 +148,8 @@ export const zerodhaProcessor: BrokerProcessor = {
       name,
       format,
       error: "",
-      updatedConfigs,
+      brokerId: this.setting.id,
+      updatedBrokerSettings,
     };
-  },
-};
+  }
+}

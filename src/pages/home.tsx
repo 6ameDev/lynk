@@ -31,15 +31,6 @@ export default function HomePage({ ctx }: HomePageProps) {
   const [isParsing, setIsParsing] = useState<boolean>(false);
   const [file, setFile] = useState<File | null>(null);
 
-  // const [parsedFile, setParsedFile] = useState<ParsedData | null>(null);
-  // const { tables, format: fileType, error: parsingErrors } = parsedFile ? parsedFile : {};
-
-  // const fileValidationStatus = parsingErrors
-  //     ? "invalid"
-  //     : isParsing
-  //       ? "loading"
-  //       : "valid";
-
   const parsingErrors: string | undefined = undefined;
   const fileValidationStatus = "valid";
 
@@ -69,7 +60,7 @@ export default function HomePage({ ctx }: HomePageProps) {
       <Button
         variant="outline"
         size="icon"
-        onClick={() => ctx.api.navigation.navigate('/addons/lynk/configs')}
+        onClick={() => ctx.api.navigation.navigate('/addons/lynk/settings')}
         className="rounded-full"
       >
         <Icons.Settings className="size-4" />
@@ -79,7 +70,7 @@ export default function HomePage({ ctx }: HomePageProps) {
 
   return (
     <Page>
-      <PageHeader heading="Lynk" text="" actions={headerActions}/>
+      <PageHeader heading="Lynk" text="" actions={headerActions} />
 
       <PageContent className="">
 
