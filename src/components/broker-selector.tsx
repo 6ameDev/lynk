@@ -1,32 +1,26 @@
 import { Icons } from "@wealthfolio/ui";
 import type { FC } from "react";
-
-export type Broker = {
-  id: string;
-  name: string;
-  icon: keyof typeof Icons;
-  url: string;
-};
+import { BrokerSetting } from "../types";
 
 type BrokerSelectorProps = {
-  brokers: Broker[];
-  maxWidth?: number | string;
+  brokers: BrokerSetting[];
 };
 
-export const BrokerSelector: FC<BrokerSelectorProps> = ({
-  brokers,
-  maxWidth = 600,
-}) => {
+export const BrokerSelector: FC<BrokerSelectorProps> = ({ brokers }) => {
+  if (brokers.length === 0) return null;
+
   return (
-    <div style={{maxWidth, overflowX: "auto"}}>
-      <div style={{display: "flex", gap: 2, padding: 4, width: "max-content"}}>
+    <div style={{ maxWidth: 600, overflowX: "auto" }}>
+      <div style={{ display: "flex", gap: 2, padding: 4, width: "max-content" }}>
         {brokers.map((broker) => {
-          const Icon = Icons[broker.icon];
+          // Fallback to Briefcase if specialized icon not found, 
+          // though we should ideally use logos if available
+          const Icon = Icons.Briefcase;
 
           return (
             <a
               key={broker.id}
-              href={broker.url}
+              href={broker.url || "#"}
               target="_blank"
               rel="noopener noreferrer"
               className="flex min-w-[96px] flex-col items-center gap-1 rounded-lg border bg-background p-2 hover:bg-muted transition"

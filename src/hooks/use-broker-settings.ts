@@ -3,7 +3,7 @@ import { BrokerSetting } from "../types";
 
 const STORAGE_KEY = "lynk-broker-settings";
 
-const BROKERS_SEED: Omit<BrokerSetting, "assetCount" | "errorCount" | "lastSyncedAt" | "lastSyncError" | "uniqueErrors">[] = [
+const BROKERS_SEED: BrokerSetting[] = [
   {
     id: "zerodha",
     name: "Zerodha",
@@ -14,37 +14,39 @@ const BROKERS_SEED: Omit<BrokerSetting, "assetCount" | "errorCount" | "lastSynce
     mappingSupported: true,
     symbolMap: {},
     placeholderMap: {
-      source: "ZOMATO",
-      mapped: "ZOMATO.NS"
+      source: "FOOBAR",
+      mapped: "FOOBAR.NS"
     },
     capabilities: {
       instruments: "Stocks, Mutual Funds, F&O",
       coverage: "India",
     },
+    errorCount: 0,
   },
   {
     id: "kuvera",
     name: "Kuvera",
     description: "Free Direct Mutual Fund Investment Platform.",
-    url: "https://kuvera.in",
+    url: "https://kuvera.in/reports/transactions",
     logoFilename: null,
     enabled: false,
     mappingSupported: true,
     symbolMap: {},
     placeholderMap: {
-      source: "HDFC Nifty 50 Index Fund Direct Growth",
-      mapped: "0P0000XW7T.BO"
+      source: "ABC Nifty 50 Index Fund Direct Growth",
+      mapped: "0P0000AABC.BO"
     },
     capabilities: {
       instruments: "Mutual Funds, Stocks, Gold",
       coverage: "India",
     },
+    errorCount: 0,
   },
   {
     id: "vested",
     name: "Vested",
     description: "Helping Indians invest globally with confidence.",
-    url: "https://app.vestedfinance.com",
+    url: "https://app.vestedfinance.com/en/global/transaction-history",
     logoFilename: null,
     enabled: false,
     mappingSupported: false,
@@ -54,6 +56,7 @@ const BROKERS_SEED: Omit<BrokerSetting, "assetCount" | "errorCount" | "lastSynce
       instruments: "Stocks, ETFs",
       coverage: "US",
     },
+    errorCount: 0,
   },
 ];
 
@@ -84,17 +87,12 @@ export function useBrokerSettings() {
 
     const initializedBrokers: BrokerSetting[] = BROKERS_SEED.map((seed) => {
       const stored = storageData[seed.id] || {};
+
       return {
         ...seed,
-        // Preserve user preferences from storage
         enabled: stored.enabled ?? seed.enabled,
         symbolMap: stored.symbolMap ?? seed.symbolMap,
-        // Metrics stay at 0 until synced
-        assetCount: 0,
-        errorCount: 0,
-        lastSyncedAt: null,
-        lastSyncError: null,
-        uniqueErrors: [],
+        errorCount: stored.errorCount ?? seed.errorCount,
       };
     });
 
@@ -104,7 +102,15 @@ export function useBrokerSettings() {
 
   const updateBroker = (brokerId: string, updates: Partial<BrokerSetting>) => {
     setBrokers((prev) => {
-      const next = prev.map((b) => (b.id === brokerId ? { ...b, ...updates } : b));
+      const next = prev.map((b) => {
+        if (b.id !== brokerId) return b;
+
+        const nextBroker = { ...b, ...updates };
+        if (updates.symbolMap) {
+          nextBroker.errorCount = Object.values(nextBroker.symbolMap).filter((v) => !v).length;
+        }
+        return nextBroker;
+      });
 
       // Persist only user-modifiable fields
       const storageData = loadFromStorage();
@@ -113,6 +119,7 @@ export function useBrokerSettings() {
         storageData[brokerId] = {
           enabled: broker.enabled,
           symbolMap: broker.symbolMap,
+          errorCount: broker.errorCount,
         };
         saveToStorage(storageData);
       }
@@ -129,8 +136,11 @@ export function useBrokerSettings() {
     updateBroker(brokerId, { symbolMap });
   };
 
+  const enabledBrokers = brokers.filter((b) => b.enabled);
+
   return {
     brokers,
+    enabledBrokers,
     isLoading,
     toggleBroker,
     updateSymbolMap,

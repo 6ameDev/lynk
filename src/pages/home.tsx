@@ -3,33 +3,21 @@ import { useState } from "react";
 import { Account, AddonContext } from "@wealthfolio/addon-sdk";
 import { Button, Icons, Page, PageContent, PageHeader } from "@wealthfolio/ui";
 
-import { Broker, BrokerSelector } from "../components";
+import { BrokerSelector } from "../components";
 import { FileDropzone, AccountSelector, HelpTooltip } from "../components";
 import Importer from "../components/importer";
+import { useBrokerSettings } from "../hooks/use-broker-settings";
 
 interface HomePageProps {
   ctx: AddonContext;
 }
 
-const SUPPORTED_BROKERAGES: Broker[] = [
-  {
-    id: "kuvera",
-    name: "Kuvera",
-    icon: "Briefcase",
-    url: "https://kuvera.in/reports/transactions",
-  },
-  {
-    id: "vested",
-    name: "Vested",
-    icon: "Briefcase",
-    url: "https://app.vestedfinance.com/en/global/transaction-history",
-  },
-];
-
 export default function HomePage({ ctx }: HomePageProps) {
   const [selectedAccount, setSelectedAccount] = useState<Account | null | undefined>(null);
   const [isParsing, setIsParsing] = useState<boolean>(false);
   const [file, setFile] = useState<File | null>(null);
+
+  const { enabledBrokers } = useBrokerSettings();
 
   const parsingErrors: string | undefined = undefined;
   const fileValidationStatus = "valid";
@@ -55,17 +43,19 @@ export default function HomePage({ ctx }: HomePageProps) {
   };
 
   const headerActions = (
-    <>
-      <BrokerSelector brokers={SUPPORTED_BROKERAGES} />
+    <div className="flex items-center gap-3">
+      <div className="hidden sm:block">
+        <BrokerSelector brokers={enabledBrokers} />
+      </div>
       <Button
         variant="outline"
         size="icon"
         onClick={() => ctx.api.navigation.navigate('/addons/lynk/settings')}
-        className="rounded-full"
+        className="rounded-full shrink-0"
       >
         <Icons.Settings className="size-4" />
       </Button>
-    </>
+    </div>
   );
 
   return (

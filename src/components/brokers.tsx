@@ -65,6 +65,11 @@ function BrokerSettings({
                   {broker.capabilities.coverage}
                 </Badge>
               )}
+              {broker.errorCount > 0 && (
+                <Badge variant="destructive" className="h-5 px-1.5 text-[10px] font-normal">
+                  {`${broker.errorCount} errors`}
+                </Badge>
+              )}
             </div>
             {broker.description && (
               <p className="text-muted-foreground mt-0.5 text-xs">{broker.description}</p>

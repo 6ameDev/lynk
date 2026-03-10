@@ -21,11 +21,7 @@ export interface BrokerSetting {
     instruments: string | null;
     coverage: string | null;
   };
-  assetCount: number;
   errorCount: number;
-  lastSyncedAt: string | null;
-  lastSyncError: string | null;
-  uniqueErrors: string[];
 }
 
 export interface Configs {
